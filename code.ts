@@ -19,6 +19,7 @@ figma.ui.onmessage = async (msg) => {
     types: ["TEXT"],
   });
   let matchCounter = 0;
+  let indexArray = [];
 
   await figma.loadFontAsync({ family: "Inter", style: "Regular" });
   if (msg.type === "create-rectangles") {
@@ -49,13 +50,13 @@ figma.ui.onmessage = async (msg) => {
           let pageNumText = parentFrame.findChild(
             (n) => n.name === "PageNumberText"
           ) as TextNode;
-          let indexText = figma.createText();
+
           let textNodeVal = textNodeStyle[textNodeStyle.length - 1].characters;
           let pageNumTextVal = pageNumText.characters
             ? pageNumText.characters
             : "x";
-          let combineText = textNodeVal + " ...... " + pageNumTextVal;
-          // Create FRAME
+
+          // Create auto-layout frame for desired layout and design of index page
           var frame_text = figma.createFrame();
           figma.currentPage.appendChild(frame_text);
           frame_text.resize(500.0, 56.0);
@@ -88,21 +89,33 @@ figma.ui.onmessage = async (msg) => {
           text_1_5.characters = pageNumTextVal;
           text_1_5.fontSize = 12;
           text_1_5.textAutoResize = "WIDTH_AND_HEIGHT";
-
-          //indexText.characters = combineText;
-          indexFrame.appendChild(frame_text);
+          indexArray.push({
+            id: frame_text,
+            pageNumber: parseInt(pageNumTextVal),
+          });
           matchCounter++;
         }
       }
     }
 
+    //sort the frameObjects with index items based on their page number
+    let sortedIndexArray = indexArray.sort(function (a, b) {
+      return a.pageNumber - b.pageNumber;
+    });
+
+    for (let i = 0; i < matchCounter; i++) {
+      indexFrame.appendChild(sortedIndexArray[i].id);
+    }
+
+    //zoom into the newly created Index Page Frame
     var selectionFrame = figma.currentPage.findAll(
-      (n) => n.name === "Index Frame"
+      (n) => n.id === indexFrame.id
     );
     figma.currentPage.selection = [];
     figma.currentPage.selection = selectionFrame;
     figma.viewport.scrollAndZoomIntoView(selectionFrame);
     console.log("Match Count: ", matchCounter);
+    figma.notify("✨ Index Page created successfully ✨");
   }
 
   // Make sure to close the plugin when you're done. Otherwise the plugin will
